@@ -22,6 +22,7 @@ class TestGameLogic(unittest.TestCase):
         self.assertEqual(new_game.game_finished(), False)
         new_game.player1.select_square(4)
         self.assertEqual(new_game.game_finished(), (True, new_game.player1))
+        print("testing")
 
 
    
