@@ -63,24 +63,18 @@ class Board:
     
     def __repr__(self):
         max_length = -1
-        output = f"```You're trying to get a sum of {self.board_sum}!\n"
+        output = f"```diff\nYou're trying to get a sum of {self.board_sum}!\n\n"
         for square in self.square_list:
             if len(str(square.number)) > max_length:
                 max_length = len(str(square.number))
-        max_length += 2
-        for square in self.square_list:
-            output += f"{square.number:>{max_length}}"
-        output += "\n"
-        test = "💚"
-        nother = "❤️"
-        blank = " "
+        max_length += 1
         for square in self.square_list:
             if square.selected_by is None:
-                output += f"{blank:>{max_length}}"
+                output += "* " + str(square.number) + "\n"
             elif square.selected_by.num == 0:
-                output += f"{test:>{max_length}}"
+                output += "+ " + str(square.number) + " 💚\n"
             else:
-                output += f"{nother:>{max_length}}"
+                output += "- " + str(square.number) + " ❤️\n"
         output += "```"
         return output
 
@@ -105,11 +99,11 @@ class Game:
 
         for answer_set in self.board.solution_set:
             if answer_set.issubset(self.player1.selected_square_set):
-                return (True, self.player1)
+                return (True, self.player1, answer_set)
 
         for answer_set in self.board.solution_set:
             if answer_set.issubset(self.player2.selected_square_set):
-                return (True, self.player2)
+                return (True, self.player2, answer_set)
 
         return False
 

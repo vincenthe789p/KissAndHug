@@ -1,6 +1,7 @@
 # [username] ________
 from model import *
 import discord
+import json
 
 players = []
 moves = 0
@@ -12,6 +13,9 @@ sum_up_to = board_solution_tuple[1]
 
 new_board = Board(board_solution, sum_up_to)
 new_game = Game(new_board)
+
+with open("profile.json") as profile_file:
+    profile = json.load(profile_file)
 
 def reset():
     global board_solution_tuple
@@ -43,24 +47,41 @@ async def reply(message, content):
 
 @client.event
 async def on_message(message):
+    global players
     if message.author == client.user:
         return
 
-    if not message.content.startswith("//"):
+    if not message.content.startswith(profile["prefix"]):
         return
 
     text = message.content[2:].split()
+
+    if len(text) == 2 and text[0] == "force" and len(message.mentions) == 1:
+        if message.mentions[0] in players:
+            await message.channel.send(f"The player ({message.mentions[0].mention}) you are trying to force is already ingame.")
+            return
+        if len(players) >= 2:
+            await message.channel.send(f"I can't force in {message.mentions[0].mention} 'cause there are too many players!")
+            return 
+
+        players.append(message.mentions[0])
+        if len(players) == 1:
+            new_game.player1.name = message.mentions[0].name
+        else:
+            new_game.player2.name = message.mentions[0].name
+        await message.channel.send(f"I have forced {message.mentions[0].mention} into the game.")
+        return
 
     if len(text) != 1:
         await reply(message, "all commands must consist of one 'word' or 'number'.")
         return
     
     if text[0] == "help":
-        out = """```diff
+        out = f"""```diff
 - Welcome to Hugs and Kisses!
-+ Prefix: //
++ Prefix: {profile["prefix"]}
 
-- Commands: help, join, start, stop, [digit]
+- Commands: help, join, start, stop, [digit], reset, board, players
 
 - How to play
 + This game is designed for two players only.
@@ -74,15 +95,15 @@ async def on_message(message):
 + Board: [1, 6, 9, 10, 11, 3, 8, 200, 5, 4, 2]
 + N: 6
 
-+ Player 1: //5
-+ Player 2: //6
-+ Player 1: //1
-+ Player 2: //9
-+ Player 1: //3
-+ Player 2: //8
-+ Player 1: //200
-+ Player 2: //11
-+ Player 1: //2
++ Player 1: {profile["prefix"]}5
++ Player 2: {profile["prefix"]}6
++ Player 1: {profile["prefix"]}1
++ Player 2: {profile["prefix"]}9
++ Player 1: {profile["prefix"]}3
++ Player 2: {profile["prefix"]}8
++ Player 1: {profile["prefix"]}200
++ Player 2: {profile["prefix"]}11
++ Player 1: {profile["prefix"]}2
 
 - Player 1 wins, the subset of numbers being [1, 3, 2]
 
@@ -90,7 +111,6 @@ Emoji test: ❤️ 💚```"""
         await message.channel.send(out)
     
     elif text[0] == "join":
-        global players
         if message.author in players:
             await reply(message, "you've already joined the game.")
             return
@@ -114,6 +134,18 @@ Emoji test: ❤️ 💚```"""
     elif text[0] == "reset":
         reset()
         await reply(message, "the game has been reset.")
+    
+    elif text[0] == "board":
+        await message.channel.send(new_game.board)
+    
+    elif text[0] == "players":
+        out = "Joined players:\n"
+        if len(players) == 0:
+            await message.channel.send("No players have joined.")
+            return
+        for player in players:
+            out += player.mention + "\n"
+        await message.channel.send(out)
     
     elif text[0] == "start":
         if message.author not in players:
@@ -155,17 +187,20 @@ Emoji test: ❤️ 💚```"""
                 new_game.next_turn()
             else:
                 if has_won[1] == new_game.player1:
-                    await message.channel.send(f"{players[0]} has won!")
+                    await message.channel.send(f"{players[0].mention} has won!")
+                    await message.channel.send(f"The winning set was: {str(has_won[2])}")
                 else:
-                    await message.channel.send(f"{players[1]} has won!")
+                    await message.channel.send(f"{players[1].mention} has won!")
+                    await message.channel.send(f"The winning set was: {str(has_won[2])}")
                 reset()
         except Exception as e:
             await message.channel.send(str(e))
     
     else:
-        await reply(message, "that is an invalid command. Type //help for more information.")
+        out = f"that is an invalid command. Type {profile['prefix']} help for more information."
+        await reply(message, out)
 
-client.run("NjgwNjQ5ODU5MjUwMTI2OTg5.XlDgpw.-j_NC6y2SUwJhEyVduvia_ATnlc")
+client.run(profile["token"])
 
 """
 board_solution_tuple = board_solution_generator()
